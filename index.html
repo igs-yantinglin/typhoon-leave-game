@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#071923" />
+    <meta name="description" content="颱風假決策室：追蹤五天颱風路徑，晚上八點只給你五秒決定放不放假。" />
+    <title>今晚，放不放？｜颱風假決策室</title>
+    <link rel="icon" href="assets/storm-mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="game.js" defer></script>
+  </head>
+  <body>
+    <div class="page-glow" aria-hidden="true"></div>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand"><img src="assets/storm-mark.svg" alt="" /><div><strong>颱風假決策室</strong><span>TYPHOON LEAVE CONTROL</span></div></div>
+        <div class="top-status"><span class="live-dot"></span><span id="headerStatus">等待決策官上線</span></div>
+        <button id="soundToggle" class="sound-toggle" type="button" aria-label="開啟音效" aria-pressed="false"><span class="sound-icon">♪</span><span class="sound-label">音效關</span></button>
+      </header>
+
+      <main id="gameBoard" class="game-layout">
+        <section class="screen-frame" aria-label="颱風動向監測螢幕">
+          <div class="frame-top"><div class="frame-id"><span class="mini-lamp"></span> TAIWAN WEATHER RADAR <span class="frame-separator">/</span> 01</div><div class="frame-top-right"><span id="screenClock">19:50:00</span><span class="signal-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div></div>
+          <div class="monitor">
+            <div class="monitor-grid" aria-hidden="true"></div>
+            <div class="map-label map-label-north">東海</div><div class="map-label map-label-west">臺灣海峽</div><div class="map-label map-label-east">菲律賓海</div>
+            <svg class="radar-map" viewBox="0 0 760 490" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+              <defs>
+                <radialGradient id="stormCloud"><stop stop-color="#ffdb8f" stop-opacity=".7"/><stop offset=".28" stop-color="#bfdce2" stop-opacity=".58"/><stop offset=".65" stop-color="#8cc8d5" stop-opacity=".27"/><stop offset="1" stop-color="#88bfc9" stop-opacity="0"/></radialGradient>
+                <radialGradient id="impactGlow"><stop stop-color="#ffb86c" stop-opacity=".58"/><stop offset="1" stop-color="#ff7e56" stop-opacity="0"/></radialGradient>
+              </defs>
+              <image href="assets/real-map.svg" width="760" height="490" />
+              <g class="map-crosshairs" stroke="#b5dbe0" stroke-opacity=".16" stroke-width="1"><circle cx="375" cy="244" r="107" fill="none" stroke-dasharray="4 8"/><circle cx="375" cy="244" r="190" fill="none" stroke-dasharray="3 11"/></g>
+              <g class="impact-zone"><ellipse cx="398" cy="205" rx="39" ry="29" fill="url(#impactGlow)"/><ellipse class="impact-ring" cx="398" cy="205" rx="23" ry="15" fill="none" stroke="#ffb16d" stroke-width="2" stroke-dasharray="4 3"/><circle cx="393" cy="205" r="2.7" fill="#ffd89a"/><circle cx="403" cy="202" r="2.7" fill="#ffd89a"/><circle cx="411" cy="200" r="2.7" fill="#ffd89a"/><circle cx="387" cy="212" r="2.7" fill="#ffd89a"/><path d="M414 192 L441 163" fill="none" stroke="#ffca89" stroke-width="1.5"/><rect x="439" y="146" width="92" height="28" rx="4" fill="#472d2b" stroke="#ffbd78" stroke-width="1.5"/><text x="485" y="165" text-anchor="middle" fill="#ffdbad" font-size="13" font-weight="900">北北基桃</text></g>
+              <g id="forecastLayer"></g>
+              <g id="trackLayer"></g>
+              <g id="actualLayer"></g>
+            </svg>
+            <div class="monitor-vignette" aria-hidden="true"></div>
+            <div class="radar-tag"><span class="tag-pulse"></span><span id="radarTag">衛星連線待命</span></div>
+            <div id="clockCard" class="clock-card"><div class="clock-copy"><span id="clockCaption">距晚上 20:00</span><strong id="timeLabel">路徑播放倒數</strong></div><div class="clock-face"><span id="countdown">10</span><small id="clockUnit">秒</small></div><div class="timer-rail"><i id="timerFill"></i></div></div>
+            <div id="forecastOverlay" class="forecast-overlay" hidden><strong>可能路線</strong><div id="forecastOptions"></div></div>
+            <div id="coordinateValue" class="coordinate">24.0°N　121.0°E</div>
+            <div id="introOverlay" class="intro-overlay">
+              <div class="intro-card"><div class="intro-eyebrow">市長，你只有一個決定</div><h1>今晚，<em>放不放？</em></h1><p>十秒看完颱風前五天路徑。<br>晚上 20:00，給你五秒宣布。</p><button id="startButton" class="start-button" type="button">進入決策室 <span>→</span></button></div>
+            </div>
+            <div id="phaseFlash" class="phase-flash" aria-live="polite"></div>
+          </div>
+          <div class="screen-bottom"><div class="screen-bottom-left"><span class="screen-bottom-label">颱風路徑</span><strong id="stormName">—</strong></div><div class="progress-track" id="dayProgress" aria-label="五天路徑進度"><span></span><span></span><span></span><span></span><span></span></div><div class="screen-bottom-day" id="dayLabel">待命中</div></div>
+        </section>
+
+        <aside class="control-panel" aria-label="放假決策台">
+          <div class="panel-head"><div class="panel-kicker">EMERGENCY DECISION UNIT <span>●</span> 001</div><h2>明天要<span>放假嗎？</span></h2></div>
+          <div class="decision-block"><div class="decision-title"><span>你的宣布</span><span id="decisionHint">等待預報完成</span></div><div class="decision-buttons"><button id="holidayButton" class="decision-button holiday" type="button" disabled><span class="button-led"></span><span class="button-content"><span class="button-overline">宣布停班停課</span><strong>放假</strong></span><span class="button-arrow">↗</span></button><button id="workButton" class="decision-button work" type="button" disabled><span class="button-led"></span><span class="button-content"><span class="button-overline">照常上班上課</span><strong>不放</strong></span><span class="button-arrow">↗</span></button></div></div>
+          <div class="panel-footer"><span>● 全市市民正在等待公告</span><span class="key-hint">A / D 快捷鍵</span></div>
+        </aside>
+        <aside id="threadsPanel" class="threads-panel" aria-label="市民 Threads 言論"><div class="threads-head"><div class="threads-mark">＠</div><div><strong>threads</strong><span id="threadsCount">市民即時討論</span></div><i class="threads-online"></i><button id="threadsExpand" class="threads-expand" type="button" aria-label="放大 Threads" aria-expanded="false">放大</button></div><div id="threadsFeed" class="threads-feed" aria-live="polite"></div><div class="threads-foot"><span class="live-dot"></span> 正在追蹤全市輿情</div></aside>
+        <div id="handCursor" class="hand-cursor" aria-hidden="true"><img src="assets/fist-hammer.webp" alt="" /></div>
+      </main>
+      <footer class="site-footer"><span>SIMULATION 01 — 天氣永遠有最後發言權</span><span>颱風假決策室 © 2026</span></footer>
+    </div>
+
+    <div id="resultOverlay" class="result-overlay" hidden>
+      <div class="result-backdrop"></div>
+      <div class="news-page" role="dialog" aria-modal="true" aria-labelledby="newsHeadline">
+        <div class="news-masthead"><div class="news-logo"><span class="news-logo-mark">N</span><span>NEWS<br>24</span></div><div class="news-mast-copy"><strong>明日頭條</strong><span>BREAKING NEWS　/　颱風特別報導</span></div><div class="news-date" id="newsDate">翌日 08:00<br>即時快訊</div></div>
+        <div class="news-badge" id="newsBadge">即時新聞</div>
+        <h2 id="newsHeadline"></h2>
+        <p class="news-deck" id="newsDeck"></p>
+        <div class="news-body"><div class="news-photo" id="newsPhoto"><img id="newsShot" class="news-shot" alt="" /><div class="news-weather-art"><div class="weather-sun"></div><div class="weather-cloud cloud-one"></div><div class="weather-cloud cloud-two"></div><div class="weather-rain"></div></div><div class="photo-caption" id="photoCaption"></div></div><div class="news-facts"><div class="fact-line"><span>昨日決策</span><strong id="factDecision"></strong></div><div class="fact-line"><span>實際路線</span><strong id="factRoute"></strong></div><div class="fact-line"><span>實際天氣</span><strong id="factWeather"></strong></div><div class="fact-line score-line"><span>下期市長當選率</span><strong id="factReaction"></strong></div><div class="news-quote"><span>街頭聲音</span><p id="citizenQuote"></p></div></div></div>
+        <div class="news-bottom"><div class="news-ticker"><strong>LIVE</strong><span id="tickerText"></span></div><button id="replayButton" class="replay-button" type="button">再決定一次 <span>↻</span></button></div>
+      </div>
+    </div>
+  </body>
+</html>
