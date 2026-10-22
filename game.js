@@ -428,9 +428,6 @@
     addSampledPosts(waitingPosts[0], 2);
     playTone(720, .16, "triangle", .06);
     setTimeout(() => playTone(920, .21, "triangle", .05), 110);
-    if (window.matchMedia("(max-width: 900px)").matches) {
-      el.holidayButton.scrollIntoView({block: "nearest", behavior: "smooth"});
-    }
     if (!window.matchMedia("(hover:hover) and (pointer:fine)").matches) el.handCursor.classList.remove("visible");
   }
 
@@ -632,7 +629,8 @@
     const luck = Math.floor(Math.random() * 11) - 5;
     const score = Math.max(3, Math.min(96, base + luck - penalty));
     const announcedAt = "20:00";
-    const timing = choice === "none" ? "；市府未在晚間八點的五秒決策期內公告" : hesitationPenalty ? `；晚間八點公告，猶豫 ${(announcedElapsed / 1000).toFixed(1)} 秒，另扣 ${hesitationPenalty}%` : "；晚間八點即時公告";
+    const timingLead = choice === "none" ? "五秒內未公告，當選率另扣 10%。" :
+      hesitationPenalty ? `公告猶豫 ${(announcedElapsed / 1000).toFixed(1)} 秒，當選率另扣 ${hesitationPenalty}%。` : "";
     el.newsPage.classList.toggle("good-result", story.tier === "good");
     el.newsPage.classList.toggle("mixed-result", story.tier === "mixed");
     el.newsBadge.textContent = tierBadge[story.tier];
@@ -646,7 +644,7 @@
       late: "雨帶直到傍晚才掃進北北基桃"
     };
     const routeLead = `颱風最後${actualRoute.name}，${routeImpact[actualWeather]}。`;
-    el.newsDeck.textContent = routeLead + story.deck.replace(/。$/, "") + timing + "。";
+    el.newsDeck.textContent = timingLead + routeLead + story.deck;
     el.newsPhoto.classList.toggle("sunny", !stormy);
     el.newsPhoto.classList.toggle("stormy", stormy);
     el.photoCaption.textContent = story.caption;
@@ -736,6 +734,13 @@
     el.handCursor.classList.add("down");
     const button = event.target.closest?.(".decision-button:not(:disabled)");
     if (button) button.classList.add("is-pressed");
+    // iOS 內嵌瀏覽器有時會吞掉 3D 按鈕的 click；觸控開始時直接判定左右半邊。
+    const touchArea = event.pointerType === "touch" && phase === "decision" && event.target.closest?.(".decision-buttons");
+    if (touchArea) {
+      const bounds = touchArea.getBoundingClientRect();
+      makeDecision(event.clientX < bounds.left + bounds.width / 2 ? "holiday" : "work");
+      return;
+    }
     if (phase === "tracking" && event.target.closest?.(".decision-button")) showFlash("簡報中，20:00 才能宣布");
   }, {passive: true});
   const releaseHand = () => {
@@ -753,6 +758,38 @@
     el.handCursor.classList.remove("visible");
     document.body.classList.remove("desk-hand-active");
   });
+  // 舊版 iOS WebView 可能忽略 touch-action: manipulation；只攔截短距離的第二下輕觸。
+  let touchStart = null;
+  let previousTap = null;
+  document.addEventListener("touchstart", (event) => {
+    if (event.touches.length !== 1) {
+      touchStart = null;
+      previousTap = null;
+      return;
+    }
+    const touch = event.touches[0];
+    touchStart = {x: touch.clientX, y: touch.clientY, at: performance.now()};
+  }, {passive: true});
+  document.addEventListener("touchend", (event) => {
+    if (!touchStart || event.touches.length || event.changedTouches.length !== 1) return;
+    const touch = event.changedTouches[0];
+    const now = performance.now();
+    const distance = Math.hypot(touch.clientX - touchStart.x, touch.clientY - touchStart.y);
+    if (distance < 18 && now - touchStart.at < 450) {
+      const repeated = previousTap && now - previousTap.at < 330 &&
+        Math.hypot(touch.clientX - previousTap.x, touch.clientY - previousTap.y) < 35;
+      if (repeated) {
+        event.preventDefault();
+        previousTap = null;
+      } else {
+        previousTap = {x: touch.clientX, y: touch.clientY, at: now};
+      }
+    } else {
+      previousTap = null;
+    }
+    touchStart = null;
+  }, {passive: false});
+  document.addEventListener("touchcancel", () => { touchStart = null; previousTap = null; }, {passive: true});
   el.newsShot.addEventListener("error", () => el.newsShot.removeAttribute("src"));
   el.gameBoard.append(el.resultOverlay);
   addPost(p("基隆雨傘人", "keelung_umbrella", "新的路徑圖出了。我先不賭明天要不要上班。", 86));
