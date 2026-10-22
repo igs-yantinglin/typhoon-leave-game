@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const TRACK_DURATION = 10_000;
+  const TRACK_DURATION = 5_000;
   const DECISION_DURATION = 5_000;
   const svgNS = "http://www.w3.org/2000/svg";
   const $ = (id) => document.getElementById(id);
@@ -334,7 +334,7 @@
     el.dayLabel.textContent = `${dayNumber} 天前`;
     el.screenClock.textContent = `D-${dayNumber} / ${hour}`;
     el.radarTag.textContent = `${storm} · ${route.name}`;
-    if (day >= 3 && el.forecastOverlay.hidden) drawForecast();
+    if (day >= 2 && el.forecastOverlay.hidden) drawForecast();
     addSampledPosts(trackingPosts[day], 3);
     playTone(470 + day * 75, .09);
   }
@@ -435,7 +435,7 @@
     if (phase === "tracking") {
       const elapsed = now - trackStart;
       updateTrack(elapsed / TRACK_DURATION);
-      const day = Math.min(4, Math.floor(elapsed / 2000));
+      const day = Math.min(4, Math.floor(elapsed / (TRACK_DURATION / 5)));
       if (day !== shownDay) showDay(day);
       el.countdown.textContent = `D-${5 - day}`;
       el.timerFill.style.width = `${Math.min(100, 100 * elapsed / TRACK_DURATION)}%`;
